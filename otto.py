@@ -6,6 +6,7 @@ import urllib
 import os
 import ConfigParser
 import os.path
+import shutil
 
 # Get your app key and secret from the Dropbox developer website
 
@@ -78,10 +79,13 @@ class Otto:
 		Downloads torrent to the specified directory
 		"""
 		print "[Downloading torrent... "+str(torrent_url) + "]"
-		# testfile = urllib.URLopener()
-		# fh, headers = testfile.retrieve(torrent_url)
+		testfile = urllib.URLopener()
+		fh, headers = testfile.retrieve(torrent_url)
+		filename = os.path.split(fh)[1]
+		dest = os.path.join(self.TORRENT_DIR,filename)
+		shutil.move(fh, dest)
 		# print str(fh)
-		print "[Torrent download Complete]"
+		print "[Complete] Torrent download Completed to "+str(dest)
 
 
 	def execute(self):
