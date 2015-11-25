@@ -75,7 +75,7 @@ class Otto:
 				command,arg = line.split(' ',1)
 			except:
 				command = line
-				args = ''
+				arg = ''
 			self.logger.info("[Command] "+command)
 			self.logger.info("[Arg] "+arg)
 			command = command.lower()
@@ -103,8 +103,10 @@ class Otto:
 			# if err:
 			# 	self.logger.info( "[Err]" + str(err))
 			self.logger.info(subprocess.check_output(args))
-		except:
-			self.logger.info( "errors happened" )
+		except Exception as e:
+			print e
+			self.logger.info( e )
+
 
 
 	def processTorrent(self,torrent_url):
