@@ -102,7 +102,7 @@ class Otto:
 			# 	self.logger.info( "[Output] "+ str(output))
 			# if err:
 			# 	self.logger.info( "[Err]" + str(err))
-			self.logger.info(subprocess.check_output(args))
+			self.logger.info(subprocess.check_output(args,shell=True))
 		except Exception as e:
 			print e
 			self.logger.info( e )
