@@ -100,7 +100,7 @@ class Otto:
 		shutil.move(fh, dest)
 		# print str(fh)
 		print "[Complete 1/2] Torrent download Completed to "+str(dest)
-		thread.start_new_thread( self.downloadTorrent, (dest ) )
+		thread.start_new_thread( self.downloadTorrent, (dest, ) )
 
 
 	def execute(self):
@@ -166,9 +166,9 @@ class Otto:
 		e = lt.bdecode(open(torrentfile, 'rb').read())
 		info = lt.torrent_info(e)
 
-		params = { save_path: self.TORRENT_DIR, \
-			storage_mode: lt.storage_mode_t.storage_mode_sparse, \
-			ti: info }
+		params = { 'save_path': self.TORRENT_DIR, \
+			'storage_mode': lt.storage_mode_t.storage_mode_sparse, \
+			'ti': info }
 		h = ses.add_torrent(params)
 
 		s = h.status()
@@ -181,7 +181,7 @@ class Otto:
 			        (s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
 			        s.num_peers, state_str[s.state])
 
-			time.sleep(1)
+			time.sleep(30)
 
 
 	def readConfig(self,configfile):
