@@ -76,6 +76,8 @@ class Otto:
 				self.processTorrent(arg)
 			elif command == 'com':
 				self.processCom(arg)
+			elif command == 'mag':
+				thread.start_new_thread( self.downloadMagnet, (arg, ) )
 
 	def processCom(self,args):
 		print "[Executing] "+str(args)
@@ -157,6 +159,18 @@ class Otto:
 			config.write(theconfigfile)
 		return True
 
+	def downloadMagnet(self,magnetlink):
+		ses = lt.session()
+		params = { 'save_path': self.TORRENT_DIR}
+		handle = lt.add_magnet_uri(ses, magnetlink, params)
+
+		print 'downloading metadata...'
+		while (not handle.has_metadata()): time.sleep(1)
+			print 'got metadata, starting torrent download...'
+		while (handle.status().state != lt.torrent_status.seeding):
+			print '%d %% done' % (handle.status().progress*100)
+			time.sleep(30)
+		print "[Complete] Download complete"
 
 
 	def downloadTorrent(self,torrentfile):
@@ -182,6 +196,7 @@ class Otto:
 			        s.num_peers, state_str[s.state])
 
 			time.sleep(30)
+		print "[Complete 2/2] Torrent download Completed"
 
 
 	def readConfig(self,configfile):
