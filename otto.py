@@ -96,12 +96,13 @@ class Otto:
 	def processCom(self,args):
 		self.logger.info( "[Executing] "+str(args))
 		try:
-			p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-			output, err = p.communicate()
-			if output:
-				self.logger.info( "[Output] "+ str(output))
-			if err:
-				self.logger.info( "[Err]" + str(err))
+			# p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+			# output, err = p.communicate()
+			# if output:
+			# 	self.logger.info( "[Output] "+ str(output))
+			# if err:
+			# 	self.logger.info( "[Err]" + str(err))
+			self.logger.info(subprocess.check_output(args))
 		except:
 			self.logger.info( "errors happened" )
 
