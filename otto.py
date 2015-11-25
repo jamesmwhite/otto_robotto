@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import libtorrent as lt
 import thread
+import logging
 
 # Get your app key and secret from the Dropbox developer website
 
@@ -20,29 +21,31 @@ class Otto:
 	CHECK_DELAY = 60 #number of seconds before checking dropbox for updates
 	CUR_REV = 0
 	TORRENT_DIR = ''
+	LOGFILE = ''
+	LOGNAME = ''
+	client = None
 
 
 	def getFile(self):
 		"""
 		Pull file from dropbox and assess if needs to be processed
 		"""
-		client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
-		folder_metadata = client.metadata('/')
+		folder_metadata = self.client.metadata('/')
 		if False:
 			print "File Listings:"
 			for item in folder_metadata['contents']:
 				if not item['is_dir']:
 					print item['path']
 
-		f, metadata = client.get_file_and_metadata('/commands.conf')
+		f, metadata = self.client.get_file_and_metadata('/commands.conf')
 		read_rev = metadata['revision']
 		
 		if read_rev > self.CUR_REV:
-			print "[Processing rev "+str(read_rev)+"]"
+			self.logger.info("[Processing rev "+str(read_rev)+"]")
 			self.CUR_REV = read_rev
 			self.processConf(f.read())
 		else:
-			print "... nothing to do"
+			self.logger.info("... nothing to do")
 
 
 	def authorise(self):
@@ -67,10 +70,14 @@ class Otto:
 		"""
 		lines = content.split('\n')
 		for line in lines:
-			print "[Processing] " + str(line)
-			command,arg = line.split(' ',1)
-			print "[Command] "+command
-			print "[Arg] "+arg
+			self.logger.info("[Processing] " + str(line))
+			try:
+				command,arg = line.split(' ',1)
+			except:
+				command = line
+				args = ''
+			self.logger.info("[Command] "+command)
+			self.logger.info("[Arg] "+arg)
 			command = command.lower()
 			if command == 'tor': 
 				self.processTorrent(arg)
@@ -78,30 +85,39 @@ class Otto:
 				self.processCom(arg)
 			elif command == 'mag':
 				thread.start_new_thread( self.downloadMagnet, (arg, ) )
+			elif command == 'log':
+				self.getLog();
+
+	def getLog(self):
+		f = open(self.LOGFILE, 'rb')
+		response = self.client.put_file('/'+self.LOGNAME, f)
+		f.close()
 
 	def processCom(self,args):
-		print "[Executing] "+str(args)
+		self.logger.info( "[Executing] "+str(args))
 		try:
 			p = subprocess.Popen(args, stdout=subprocess.PIPE, shell=True)
 			(output, err) = p.communicate()
-			print "[Output] "+ str(output)
-			print "[Err]" + str(err)
+			if output:
+				self.logger.info( "[Output] "+ str(output))
+			if err:
+				self.logger.info( "[Err]" + str(err))
 		except:
-			print "errors happened" 
+			self.logger.info( "errors happened" )
 
 
 	def processTorrent(self,torrent_url):
 		"""
 		Downloads torrent to the specified directory
 		"""
-		print "[Downloading torrent... "+str(torrent_url) + "]"
+		self.logger.info( "[Downloading torrent... "+str(torrent_url) + "]")
 		testfile = urllib.URLopener()
 		fh, headers = testfile.retrieve(torrent_url)
 		filename = os.path.split(fh)[1]
 		dest = os.path.join(self.TORRENT_DIR,filename)
 		shutil.move(fh, dest)
 		# print str(fh)
-		print "[Complete 1/2] Torrent download Completed to "+str(dest)
+		self.logger.info( "[Complete 1/2] Torrent download Completed to "+str(dest))
 		thread.start_new_thread( self.downloadTorrent, (dest, ) )
 
 
@@ -109,9 +125,11 @@ class Otto:
 		"""
 		Loop to run program
 		"""
+		self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
 		while True:
+			print "Otto is now running, log file can be found here: "+str(self.LOGFILE)
 			st = datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
-			print str(st) + " checking dropbox..."
+			self.logger.info( str(st) + " checking dropbox...")
 			otto.getFile()
 			time.sleep(self.CHECK_DELAY)
 
@@ -164,13 +182,13 @@ class Otto:
 		params = { 'save_path': self.TORRENT_DIR}
 		handle = lt.add_magnet_uri(ses, magnetlink, params)
 
-		print 'downloading metadata...'
+		self.logger.info( 'downloading metadata...')
 		while (not handle.has_metadata()): time.sleep(1)
-		print 'got metadata, starting torrent download...'
+		self.logger.info( 'got metadata, starting torrent download...')
 		while (handle.status().state != lt.torrent_status.seeding):
-			print '%d %% done' % (handle.status().progress*100)
-			time.sleep(30)
-		print "[Complete] Download complete"
+			self.logger.info( '%d %% done' % (handle.status().progress*100))
+			time.sleep(10)
+		self.logger.info( "[Complete] Download complete")
 
 
 	def downloadTorrent(self,torrentfile):
@@ -191,12 +209,12 @@ class Otto:
 
 			state_str = ['queued', 'checking', 'downloading metadata', \
 			        'downloading', 'finished', 'seeding', 'allocating']
-			print '%.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s' % \
+			self.logger.info( '%.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s' % \
 			        (s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
-			        s.num_peers, state_str[s.state])
+			        s.num_peers, state_str[s.state]))
 
-			time.sleep(30)
-		print "[Complete 2/2] Torrent download Completed"
+			time.sleep(10)
+		self.logger.info( "[Complete 2/2] Torrent download Completed")
 
 
 	def readConfig(self,configfile):
@@ -205,13 +223,24 @@ class Otto:
 		self.ACCESS_TOKEN = config.get('dropbox','accesstoken')
 		self.TORRENT_DIR = config.get('dirs','torrentdir')
 		self.CHECK_DELAY = config.getint('misc','checkfrequency')
-			
 
+	def setupLogger(self):
+		self.logger = logging.getLogger(__name__)
+		self.logger.setLevel(logging.INFO)
+		self.LOGNAME = "otto_"+self.ACCESS_TOKEN+".log"
+		self.LOGFILE = os.path.join(scriptdir,self.LOGNAME)
+		handler = logging.FileHandler(self.LOGFILE)
+		handler.setLevel(logging.INFO)
+		formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+		handler.setFormatter(formatter)
+		self.logger.addHandler(handler)
+		
 scriptdir = os.path.dirname(os.path.realpath(__file__))
 configfile = os.path.join(scriptdir,'otto.conf')
 otto = Otto()
 if otto.firstTimeWizard(configfile):
 	otto.readConfig(configfile)
+	otto.setupLogger()
 	otto.execute()
 
 
