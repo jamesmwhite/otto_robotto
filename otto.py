@@ -126,8 +126,9 @@ class Otto:
 		Loop to run program
 		"""
 		self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
+		print "Otto is now running, log file can be found here: "+str(self.LOGFILE)
 		while True:
-			print "Otto is now running, log file can be found here: "+str(self.LOGFILE)
+			
 			st = datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
 			self.logger.info( str(st) + " checking dropbox...")
 			otto.getFile()
