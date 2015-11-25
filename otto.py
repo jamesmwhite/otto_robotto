@@ -96,7 +96,7 @@ class Otto:
 	def processCom(self,args):
 		self.logger.info( "[Executing] "+str(args))
 		try:
-			p = subprocess.Popen(args, stdout=subprocess.PIPE, shell=True)
+			p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 			output, err = p.communicate()
 			if output:
 				self.logger.info( "[Output] "+ str(output))
