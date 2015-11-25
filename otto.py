@@ -7,6 +7,9 @@ import os
 import ConfigParser
 import os.path
 import shutil
+import subprocess
+import libtorrent as lt
+import thread
 
 # Get your app key and secret from the Dropbox developer website
 
@@ -65,14 +68,25 @@ class Otto:
 		lines = content.split('\n')
 		for line in lines:
 			print "[Processing] " + str(line)
-			command,arg = line.split(' ')
+			command,arg = line.split(' ',1)
 			print "[Command] "+command
 			print "[Arg] "+arg
 			command = command.lower()
 			if command == 'tor': 
 				self.processTorrent(arg)
 			elif command == 'com':
-				processCom(arg)
+				self.processCom(arg)
+
+	def processCom(self,args):
+		print "[Executing] "+str(args)
+		try:
+			p = subprocess.Popen(args, stdout=subprocess.PIPE, shell=True)
+			(output, err) = p.communicate()
+			print "[Output] "+ str(output)
+			print "[Err]" + str(err)
+		except:
+			print "errors happened" 
+
 
 	def processTorrent(self,torrent_url):
 		"""
@@ -85,10 +99,14 @@ class Otto:
 		dest = os.path.join(self.TORRENT_DIR,filename)
 		shutil.move(fh, dest)
 		# print str(fh)
-		print "[Complete] Torrent download Completed to "+str(dest)
+		print "[Complete 1/2] Torrent download Completed to "+str(dest)
+		thread.start_new_thread( downloadTorrent, (dest ) )
 
 
 	def execute(self):
+		"""
+		Loop to run program
+		"""
 		while True:
 			st = datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
 			print str(st) + " checking dropbox..."
@@ -138,6 +156,32 @@ class Otto:
 		with open(configfile, 'wb') as theconfigfile:
 			config.write(theconfigfile)
 		return True
+
+
+
+	def downloadTorrent(self,torrentfile):
+		ses = lt.session()
+		ses.listen_on(6881, 6891)
+
+		e = lt.bdecode(open(torrentfile, 'rb').read())
+		info = lt.torrent_info(e)
+
+		params = { save_path: self.TORRENT_DIR, \
+			storage_mode: lt.storage_mode_t.storage_mode_sparse, \
+			ti: info }
+		h = ses.add_torrent(params)
+
+		s = h.status()
+		while (not s.is_seeding):
+			s = h.status()
+
+			state_str = ['queued', 'checking', 'downloading metadata', \
+			        'downloading', 'finished', 'seeding', 'allocating']
+			print '%.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s' % \
+			        (s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
+			        s.num_peers, state_str[s.state])
+
+			time.sleep(1)
 
 
 	def readConfig(self,configfile):
