@@ -90,7 +90,7 @@ class Otto:
 
 	def getLog(self):
 		f = open(self.LOGFILE, 'rb')
-		response = self.client.put_file('/'+self.LOGNAME, f)
+		response = self.client.put_file('/'+self.LOGNAME, f, overwrite=True, )
 		f.close()
 
 	def processCom(self,args):
