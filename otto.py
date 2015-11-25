@@ -97,7 +97,7 @@ class Otto:
 		self.logger.info( "[Executing] "+str(args))
 		try:
 			p = subprocess.Popen(args, stdout=subprocess.PIPE, shell=True)
-			(output, err) = p.communicate()
+			output, err = p.communicate()
 			if output:
 				self.logger.info( "[Output] "+ str(output))
 			if err:
