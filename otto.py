@@ -100,7 +100,7 @@ class Otto:
 		shutil.move(fh, dest)
 		# print str(fh)
 		print "[Complete 1/2] Torrent download Completed to "+str(dest)
-		thread.start_new_thread( downloadTorrent, (dest ) )
+		thread.start_new_thread( self.downloadTorrent, (dest ) )
 
 
 	def execute(self):
