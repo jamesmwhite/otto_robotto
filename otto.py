@@ -166,7 +166,7 @@ class Otto:
 
 		print 'downloading metadata...'
 		while (not handle.has_metadata()): time.sleep(1)
-			print 'got metadata, starting torrent download...'
+		print 'got metadata, starting torrent download...'
 		while (handle.status().state != lt.torrent_status.seeding):
 			print '%d %% done' % (handle.status().progress*100)
 			time.sleep(30)
