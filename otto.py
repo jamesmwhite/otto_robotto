@@ -25,6 +25,8 @@ class Otto:
 	LOGFILE = ''
 	LOGNAME = ''
 	client = None
+	config = None
+
 
 
 	def getFile(self):
@@ -90,6 +92,9 @@ class Otto:
 				self.getLog();
 
 	def getLog(self):
+		"""
+		Pushes log file to dropbox
+		"""
 		try:
 			f = open(self.LOGFILE, 'rb')
 			response = self.client.put_file('/'+self.LOGNAME, f, overwrite=True, )
@@ -97,10 +102,17 @@ class Otto:
 		except Exception as e:
 			print e
 
-	def processCom(self,args):
-		self.logger.info( "[Executing] "+str(args))
+	def processCom(self,arg):
+		"""
+		Process command name and validate it is a valid command, if not, then log, but ignore
+		"""
+		arg = arg.strip()
+		self.logger.info( "[Looking for command] "+str(arg))
 		try:
-			p = subprocess.Popen(args.strip(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+			if not self.config.has_option('commands',arg):
+				self.logger.info("[INVALID OPTION] Command '"+str(arg)+"'' was attempted to be run")
+				return
+			p = subprocess.Popen(self.config.get('commands',arg), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 			output, err = p.communicate()
 			
 			self.logger.info( "[Output] "+ str(output))	
@@ -115,7 +127,7 @@ class Otto:
 
 	def processTorrent(self,torrent_url):
 		"""
-		Downloads torrent to the specified directory
+		Downloads the .torrent file to the specified directory
 		"""
 		self.logger.info( "[Downloading torrent... "+str(torrent_url) + "]")
 		testfile = urllib.URLopener()
@@ -134,6 +146,9 @@ class Otto:
 		"""
 		self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
 		print "Otto is now running, log file can be found here: "+str(self.LOGFILE)
+		f = open(configfile, 'rb')
+		response = self.client.put_file('/available_commands', f, overwrite=True, )
+		f.close()
 		while True:
 			
 			st = datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
@@ -156,8 +171,10 @@ class Otto:
 		config.add_section('dirs')
 		config.add_section('dropbox')
 		config.add_section('misc')
+		config.add_section('commands')
 
-		config.set('misc', 'checkfrequency', 60)
+		config.set('misc', 'checkfrequency', 30)
+		config.set('commands', '1', 'ps -ef')
 
 		while self.APP_KEY == '':
 			self.APP_KEY = raw_input("Enter Dropbox App Key: ").strip()
@@ -200,6 +217,9 @@ class Otto:
 
 
 	def downloadTorrent(self,torrentfile):
+		"""
+		Download the files the torrent is pointing at
+		"""
 		ses = lt.session()
 		ses.listen_on(6881, 6891)
 
@@ -226,13 +246,19 @@ class Otto:
 
 
 	def readConfig(self,configfile):
-		config = ConfigParser.RawConfigParser()
-		config.read(configfile)
-		self.ACCESS_TOKEN = config.get('dropbox','accesstoken')
-		self.TORRENT_DIR = config.get('dirs','torrentdir')
-		self.CHECK_DELAY = config.getint('misc','checkfrequency')
+		"""
+		Reads configuration from commands.conf at startup
+		"""
+		self.config = ConfigParser.RawConfigParser()
+		self.config.read(configfile)
+		self.ACCESS_TOKEN = self.config.get('dropbox','accesstoken')
+		self.TORRENT_DIR = self.config.get('dirs','torrentdir')
+		self.CHECK_DELAY = self.config.getint('misc','checkfrequency')
 
 	def setupLogger(self):
+		"""
+		Setup logger and logger properties
+		"""
 		self.logger = logging.getLogger(__name__)
 		self.logger.setLevel(logging.INFO)
 		self.LOGNAME = "otto_"+self.ACCESS_TOKEN+".log"
