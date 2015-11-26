@@ -3,7 +3,7 @@ import dropbox
 import time
 import datetime
 import urllib
-import os
+import os,sys
 import ConfigParser
 import os.path
 import shutil
@@ -90,6 +90,10 @@ class Otto:
 				thread.start_new_thread( self.downloadMagnet, (arg, ) )
 			elif command == 'log':
 				self.getLog();
+			elif command == 'exit':
+				sys.exit(0)
+			elif command == 'reload':
+				self.readConfig(configfile)
 
 	def getLog(self):
 		"""
