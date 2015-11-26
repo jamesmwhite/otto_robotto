@@ -11,6 +11,7 @@ import subprocess
 import libtorrent as lt
 import thread
 import logging
+from logging.handlers import RotatingFileHandler
 
 # Get your app key and secret from the Dropbox developer website
 
@@ -78,7 +79,7 @@ class Otto:
 				arg = ''
 			self.logger.info("[Command] "+command)
 			self.logger.info("[Arg] "+arg)
-			command = command.lower()
+			command = command.lower().strip()
 			if command == 'tor': 
 				self.processTorrent(arg)
 			elif command == 'com':
@@ -89,14 +90,17 @@ class Otto:
 				self.getLog();
 
 	def getLog(self):
-		f = open(self.LOGFILE, 'rb')
-		response = self.client.put_file('/'+self.LOGNAME, f, overwrite=True, )
-		f.close()
+		try:
+			f = open(self.LOGFILE, 'rb')
+			response = self.client.put_file('/'+self.LOGNAME, f, overwrite=True, )
+			f.close()
+		except Exception as e:
+			print e
 
 	def processCom(self,args):
 		self.logger.info( "[Executing] "+str(args))
 		try:
-			p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+			p = subprocess.Popen(args.strip(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 			output, err = p.communicate()
 			
 			self.logger.info( "[Output] "+ str(output))	
@@ -233,7 +237,8 @@ class Otto:
 		self.logger.setLevel(logging.INFO)
 		self.LOGNAME = "otto_"+self.ACCESS_TOKEN+".log"
 		self.LOGFILE = os.path.join(scriptdir,self.LOGNAME)
-		handler = logging.FileHandler(self.LOGFILE)
+		# handler = logging.FileHandler(self.LOGFILE)
+		handler = RotatingFileHandler(self.LOGFILE, maxBytes=1000000,backupCount=5)
 		handler.setLevel(logging.INFO)
 		formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 		handler.setFormatter(formatter)
