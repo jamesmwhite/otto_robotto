@@ -22,8 +22,8 @@ class Otto:
 	CHECK_DELAY = 60 #number of seconds before checking dropbox for updates
 	CUR_REV = 0
 	TORRENT_DIR = ''
-	MOVIE_DIR = ''
-	TV_DIR = ''
+	MOVIE_DIR = 'movies'
+	TV_DIR = 'tv'
 	LOGFILE = ''
 	LOGNAME = ''
 	client = None
@@ -217,7 +217,10 @@ class Otto:
 		ses = lt.session()
 		savepath = self.TORRENT_DIR
 		if len(location)>0:
-			savepath = os.path.join(savepath, location) 
+			savepath = os.path.join(savepath, location)
+			if not os.path.exists(savepath):
+				os.makedirs(savepath)
+				self.logger.info("Created directory "+str(savepath)) 
 		params = { 'save_path': self.savepath}
 		handle = lt.add_magnet_uri(ses, magnetlink, params)
 
