@@ -19,6 +19,7 @@ class Otto:
 	APP_KEY = ''
 	APP_SECRET = '' 
 	ACCESS_TOKEN = ''
+	DOWNLOAD_LIMIT = 1024000
 	CHECK_DELAY = 60 #number of seconds before checking dropbox for updates
 	CUR_REV = 0
 	TORRENT_DIR = ''
@@ -185,6 +186,7 @@ class Otto:
 		config.add_section('commands')
 
 		config.set('misc', 'checkfrequency', 30)
+		config.set('misc', 'downloadlimit', 1024000)
 		config.set('commands', '1', 'ps -ef')
 
 		while self.APP_KEY == '':
@@ -223,6 +225,8 @@ class Otto:
 				self.logger.info("Created directory "+str(savepath)) 
 		params = { 'save_path': savepath}
 		handle = lt.add_magnet_uri(ses, magnetlink, params)
+		handle.set_download_limit(self.DOWNLOAD_LIMIT)
+
 
 		self.logger.info( 'downloading metadata...')
 		while (not handle.has_metadata()): time.sleep(1)
@@ -272,6 +276,7 @@ class Otto:
 		self.ACCESS_TOKEN = self.config.get('dropbox','accesstoken')
 		self.TORRENT_DIR = self.config.get('dirs','torrentdir')
 		self.CHECK_DELAY = self.config.getint('misc','checkfrequency')
+		self.DOWNLOAD_LIMIT = self.config.getint('misc','downloadlimit')
 
 	def setupLogger(self):
 		"""
