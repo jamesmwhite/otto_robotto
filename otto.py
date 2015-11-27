@@ -155,14 +155,18 @@ class Otto:
 	def execute(self):
 		"""
 		Loop to run program
+		Sets up torrent session also
 		"""
+		self.ses = lt.session()
+		self.logger.info("Setting download limit to "+str(self.DOWNLOAD_LIMIT)+ " bytes")
+		self.ses.set_download_rate_limit(self.DOWNLOAD_LIMIT)
+
 		self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
 		print "Otto is now running, log file can be found here: "+str(self.LOGFILE)
 		f = open(configfile, 'rb')
 		response = self.client.put_file('/available_commands', f, overwrite=True, )
 		f.close()
-		while True:
-			
+		while True:			
 			st = datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
 			self.logger.info( str(st) + " checking dropbox...")
 			otto.getFile()
@@ -216,7 +220,6 @@ class Otto:
 		return True
 
 	def downloadMagnet(self,magnetlink,location=''):
-		ses = lt.session()
 		savepath = self.TORRENT_DIR
 		if len(location)>0:
 			savepath = os.path.join(savepath, location)
@@ -224,25 +227,29 @@ class Otto:
 				os.makedirs(savepath)
 				self.logger.info("Created directory "+str(savepath)) 
 		params = { 'save_path': savepath}
-		handle = lt.add_magnet_uri(ses, magnetlink, params)
-		handle.set_download_limit(self.DOWNLOAD_LIMIT)
-
+		handle = lt.add_magnet_uri(self.ses, magnetlink, params)
 
 		self.logger.info( 'downloading metadata...')
 		while (not handle.has_metadata()): time.sleep(1)
 		self.logger.info( 'got metadata, starting torrent download...')
 		while (handle.status().state != lt.torrent_status.seeding):
-			self.logger.info( '%d %% done' % (handle.status().progress*100))
+			self.logger.info(handle.name()+ ":  "+ str(handle.status().download_rate/1000)+ "kb/s : "+str(handle.status().upload_rate/1000)+"kb/s. Percent Complete: " + str(handle.status().progress*100))
+			self.logger.info("Tracker: "+ handle.status().current_tracker + " Seeds: "+str(handle.status().num_seeds)+ " Peers: "+str(handle.status().num_peers))
 			time.sleep(10)
-		self.logger.info( "[Complete] Download complete")
+		self.logger.info( "[Complete] Download complete of "+handle.name())
+		try:
+			self.logger.info("Removing torrent: "+str(handle.name()))
+			self.ses.remove_torrent(handle)
+		except Exception as e:
+			print e
+
 
 
 	def downloadTorrent(self,torrentfile):
 		"""
 		Download the files the torrent is pointing at
 		"""
-		ses = lt.session()
-		ses.listen_on(6881, 6891)
+		self.ses.listen_on(6881, 6891)
 
 		e = lt.bdecode(open(torrentfile, 'rb').read())
 		info = lt.torrent_info(e)
@@ -250,7 +257,7 @@ class Otto:
 		params = { 'save_path': self.TORRENT_DIR, \
 			'storage_mode': lt.storage_mode_t.storage_mode_sparse, \
 			'ti': info }
-		h = ses.add_torrent(params)
+		h = self.ses.add_torrent(params)
 
 		s = h.status()
 		while (not s.is_seeding):
@@ -264,6 +271,7 @@ class Otto:
 
 			time.sleep(10)
 		self.logger.info( "[Complete 2/2] Torrent download Completed")
+		self.ses.remove_torrent(h)
 		os.remove(torrentfile)
 
 
