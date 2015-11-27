@@ -221,7 +221,7 @@ class Otto:
 			if not os.path.exists(savepath):
 				os.makedirs(savepath)
 				self.logger.info("Created directory "+str(savepath)) 
-		params = { 'save_path': self.savepath}
+		params = { 'save_path': savepath}
 		handle = lt.add_magnet_uri(ses, magnetlink, params)
 
 		self.logger.info( 'downloading metadata...')
