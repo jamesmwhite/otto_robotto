@@ -22,6 +22,8 @@ class Otto:
 	CHECK_DELAY = 60 #number of seconds before checking dropbox for updates
 	CUR_REV = 0
 	TORRENT_DIR = ''
+	MOVIE_DIR = ''
+	TV_DIR = ''
 	LOGFILE = ''
 	LOGNAME = ''
 	client = None
@@ -94,6 +96,11 @@ class Otto:
 				sys.exit(0)
 			elif command == 'reload':
 				self.readConfig(configfile)
+			elif command == 'magtv':
+				thread.start_new_thread( self.downloadMagnet, (arg, 'tv',) )
+			elif command == 'magmovie':
+				thread.start_new_thread( self.downloadMagnet, (arg, 'movie',) )
+
 
 	def getLog(self):
 		"""
@@ -206,9 +213,12 @@ class Otto:
 			config.write(theconfigfile)
 		return True
 
-	def downloadMagnet(self,magnetlink):
+	def downloadMagnet(self,magnetlink,location=''):
 		ses = lt.session()
-		params = { 'save_path': self.TORRENT_DIR}
+		savepath = self.TORRENT_DIR
+		if len(location)>0:
+			savepath = os.path.join(savepath, location) 
+		params = { 'save_path': self.savepath}
 		handle = lt.add_magnet_uri(ses, magnetlink, params)
 
 		self.logger.info( 'downloading metadata...')
@@ -247,6 +257,7 @@ class Otto:
 
 			time.sleep(10)
 		self.logger.info( "[Complete 2/2] Torrent download Completed")
+		os.remove(torrentfile)
 
 
 	def readConfig(self,configfile):
