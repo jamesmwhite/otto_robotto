@@ -307,7 +307,7 @@ class Otto:
 		self.LOGNAME = "otto_"+self.ACCESS_TOKEN+".log"
 		self.LOGFILE = os.path.join(scriptdir,self.LOGNAME)
 		# handler = logging.FileHandler(self.LOGFILE)
-		handler = RotatingFileHandler(self.LOGFILE, maxBytes=1000000,backupCount=5)
+		handler = RotatingFileHandler(self.LOGFILE, maxBytes=100000,backupCount=5)
 		handler.setLevel(logging.INFO)
 		formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 		handler.setFormatter(formatter)
