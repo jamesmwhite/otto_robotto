@@ -27,6 +27,8 @@ class Otto:
 	TV_DIR = 'tv'
 	LOGFILE = ''
 	LOGNAME = ''
+	ERRFILE = ''
+	ERRNAME = ''
 	client = None
 	config = None
 
@@ -241,7 +243,7 @@ class Otto:
 			while (not handle.has_metadata()): time.sleep(1)
 			self.logger.info( 'got metadata, starting torrent download...')
 			while (handle.status().state != lt.torrent_status.seeding):
-				self.logger.info(handle.name()+ ":  "+ str(handle.status().download_rate/1000)+ "kb/s : "+str(handle.status().upload_rate/1000)+"kb/s. Percent Complete: " + str(handle.status().progress*100))
+				self.logger.info(handle.name()+ ":  "+ str(handle.status().download_rate/1000)+ "kb/s : "+str(handle.status().upload_rate/1000)+"kb/s. " + str(handle.status().progress*100)+"%%"+)
 				self.logger.info("Tracker: "+ handle.status().current_tracker + " Seeds: "+str(handle.status().num_seeds)+ " Peers: "+str(handle.status().num_peers))
 				time.sleep(10)
 			self.logger.info( "[Complete] Download complete of "+handle.name())
@@ -291,12 +293,15 @@ class Otto:
 		"""
 		Reads configuration from commands.conf at startup
 		"""
-		self.config = ConfigParser.RawConfigParser()
-		self.config.read(configfile)
-		self.ACCESS_TOKEN = self.config.get('dropbox','accesstoken')
-		self.TORRENT_DIR = self.config.get('dirs','torrentdir')
-		self.CHECK_DELAY = self.config.getint('misc','checkfrequency')
-		self.DOWNLOAD_LIMIT = self.config.getint('misc','downloadlimit')
+		try:
+			self.config = ConfigParser.RawConfigParser()
+			self.config.read(configfile)
+			self.ACCESS_TOKEN = self.config.get('dropbox','accesstoken')
+			self.TORRENT_DIR = self.config.get('dirs','torrentdir')
+			self.CHECK_DELAY = self.config.getint('misc','checkfrequency')
+			self.DOWNLOAD_LIMIT = self.config.getint('misc','downloadlimit')
+		except Exception as e:
+			print e
 
 	def setupLogger(self):
 		"""
@@ -306,12 +311,20 @@ class Otto:
 		self.logger.setLevel(logging.INFO)
 		self.LOGNAME = "otto_"+self.ACCESS_TOKEN+".log"
 		self.LOGFILE = os.path.join(scriptdir,self.LOGNAME)
+		
+		self.ERRNAME = "error_otto_"+self.ACCESS_TOKEN+".log"
+		self.ERRFILE = os.path.join(scriptdir,self.ERRNAME)
+
 		# handler = logging.FileHandler(self.LOGFILE)
 		handler = RotatingFileHandler(self.LOGFILE, maxBytes=100000,backupCount=5)
 		handler.setLevel(logging.INFO)
+		errhandler = RotatingFileHandler(self.ERRFILE, maxBytes=100000,backupCount=5)
+		errhandler.setLevel(logging.ERROR)
 		formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 		handler.setFormatter(formatter)
+		errhandler.setFormatter(formatter)
 		self.logger.addHandler(handler)
+		self.logger.addHandler(errhandler)
 		
 scriptdir = os.path.dirname(os.path.realpath(__file__))
 configfile = os.path.join(scriptdir,'otto.conf')
