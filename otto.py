@@ -107,12 +107,12 @@ class Otto:
 					thread.start_new_thread( self.downloadMagnet, (arg, 'movie',) )
 				elif command == 'setdelay':
 					try:
-						self.CHECK_DELAY = arg
+						self.CHECK_DELAY = int(arg)
 					except:
 						self.logger.error("Problem setting delay")
 						self.CHECK_DELAY = 180
 		except Exception as e:
-			self.logger.error(e)
+			self.logger.error(traceback.format_exc())
 
 
 	def getLog(self):
@@ -145,7 +145,7 @@ class Otto:
 			# self.logger.info(subprocess.check_output(args,shell=True))
 
 		except Exception as e:
-			self.logger.error( e )
+			self.logger.error(traceback.format_exc())
 
 
 
@@ -164,7 +164,7 @@ class Otto:
 			self.logger.info( "[Complete 1/2] Torrent download Completed to "+str(dest))
 			thread.start_new_thread( self.downloadTorrent, (dest, ) )
 		except Exception as e:
-			self.logger.error( e )
+			self.logger.error(traceback.format_exc())
 
 	def execute(self):
 		"""
@@ -187,7 +187,7 @@ class Otto:
 				otto.getFile()
 				time.sleep(self.CHECK_DELAY)
 		except Exception as e:
-			self.logger.error( e )
+			self.logger.error(traceback.format_exc())
 
 	def firstTimeWizard(self,configfile):
 		"""
@@ -259,9 +259,9 @@ class Otto:
 				self.logger.info("Removing torrent: "+str(handle.name()))
 				self.ses.remove_torrent(handle)
 			except Exception as ee:
-				self.logger.error(ee)
+				self.logger.error(traceback.format_exc())
 		except Exception as e:
-			self.logger.error( e )
+			self.logger.error(traceback.format_exc())
 
 
 
@@ -295,7 +295,7 @@ class Otto:
 			self.ses.remove_torrent(h)
 			os.remove(torrentfile)
 		except Exception as e:
-			self.logger.error( e )
+			self.logger.error(traceback.format_exc())
 
 	def readConfig(self,configfile):
 		"""
