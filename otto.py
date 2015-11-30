@@ -12,6 +12,7 @@ import libtorrent as lt
 import thread
 import logging
 from logging.handlers import RotatingFileHandler
+import traceback
 
 # Get your app key and secret from the Dropbox developer website
 
@@ -104,6 +105,12 @@ class Otto:
 					thread.start_new_thread( self.downloadMagnet, (arg, 'tv',) )
 				elif command == 'magmovie':
 					thread.start_new_thread( self.downloadMagnet, (arg, 'movie',) )
+				elif command == 'setdelay':
+					try:
+						self.CHECK_DELAY = arg
+					except:
+						self.logger.error("Problem setting delay")
+						self.CHECK_DELAY = 180
 		except Exception as e:
 			self.logger.error(e)
 
@@ -114,10 +121,11 @@ class Otto:
 		"""
 		try:
 			f = open(self.LOGFILE, 'rb')
-			response = self.client.put_file('/'+self.LOGNAME, f, overwrite=True, )
+			self.client.put_file('/'+self.LOGNAME, f, overwrite=True, )
 			f.close()
 		except Exception as e:
 			self.logger.error(e)
+			self.logger.error(traceback.format_exc())
 
 	def processCom(self,arg):
 		"""
