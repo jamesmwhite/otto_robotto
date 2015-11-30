@@ -243,7 +243,7 @@ class Otto:
 			while (not handle.has_metadata()): time.sleep(1)
 			self.logger.info( 'got metadata, starting torrent download...')
 			while (handle.status().state != lt.torrent_status.seeding):
-				self.logger.info(handle.name()+ ":  "+ str(handle.status().download_rate/1000)+ "kb/s : "+str(handle.status().upload_rate/1000)+"kb/s. " + str(handle.status().progress*100)+"%%"+)
+				self.logger.info(handle.name()+ ":  "+ str(handle.status().download_rate/1000)+ "kb/s : "+str(handle.status().upload_rate/1000)+"kb/s. " + str(handle.status().progress*100)+"%%")
 				self.logger.info("Tracker: "+ handle.status().current_tracker + " Seeds: "+str(handle.status().num_seeds)+ " Peers: "+str(handle.status().num_peers))
 				time.sleep(10)
 			self.logger.info( "[Complete] Download complete of "+handle.name())
