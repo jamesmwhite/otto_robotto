@@ -121,7 +121,11 @@ class Otto:
 		"""
 		try:
 			f = open(self.LOGFILE, 'rb')
-			self.client.put_file('/'+self.LOGNAME, f, overwrite=True, )
+			try:
+				self.client.put_file('/log_otto.log', f, overwrite=True, )
+				self.logger.info("marking sendlog as done")
+			except Exception as ex:
+				self.logger.error("problem sending log, known openssl issue " +str(ex))
 			f.close()
 		except Exception as e:
 			self.logger.error(e)
@@ -178,10 +182,17 @@ class Otto:
 
 			self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
 			print "Otto is now running, log file can be found here: "+str(self.LOGFILE)
+
 			f = open(configfile, 'rb')
-			response = self.client.put_file('/available_commands', f, overwrite=True, )
+			try:
+				self.client.put_file('/available_commands', f, overwrite=True, )
+				self.logger.info("available commands sent")
+			except Exception as ex:
+				self.logger.error("problem trying to send available commands")
+				self.logger.error(ex)
 			f.close()
-			while True:			
+			while True:
+				self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
 				st = datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
 				self.logger.info( str(st) + " checking dropbox...")
 				otto.getFile()
