@@ -32,6 +32,7 @@ class Otto:
 	ERRNAME = ''
 	client = None
 	config = None
+	dbx = None
 
 
 
@@ -45,14 +46,19 @@ class Otto:
 			for item in folder_metadata['contents']:
 				if not item['is_dir']:
 					print item['path']
-
-		f, metadata = self.client.get_file_and_metadata('/commands.conf')
-		read_rev = metadata['revision']
+		try:
+			f, metadata = self.client.get_file_and_metadata('/commands.txt')
+			read_rev = metadata['revision']
+		except:
+			# file might not exist
+			self.dbx.files_upload('','/commands.txt',mode=dropbox.files.WriteMode('overwrite', value=None))
+			return
 		
 		if read_rev > self.CUR_REV:
 			self.logger.info("[Processing rev "+str(read_rev)+"]")
 			self.CUR_REV = read_rev
 			self.processConf(f.read())
+			self.dbx.files_upload('','/commands.txt',mode=dropbox.files.WriteMode('overwrite', value=None))
 		else:
 			self.logger.info("... nothing to do")
 
@@ -104,7 +110,7 @@ class Otto:
 				elif command == 'magtv':
 					thread.start_new_thread( self.downloadMagnet, (arg, 'tv',) )
 				elif command == 'magmovie':
-					thread.start_new_thread( self.downloadMagnet, (arg, 'movie',) )
+					thread.start_new_thread( self.downloadMagnet, (arg, 'movies',) )
 				elif command == 'setdelay':
 					try:
 						self.CHECK_DELAY = int(arg)
@@ -122,7 +128,8 @@ class Otto:
 		try:
 			f = open(self.LOGFILE, 'rb')
 			try:
-				self.client.put_file('/log_otto.log', f, overwrite=True, )
+				# self.client.put_file('/log_otto.log', f, overwrite=True, )
+				self.dbx.files_upload(f,'/log_otto.log',mode=dropbox.files.WriteMode('overwrite', value=None))
 				self.logger.info("marking sendlog as done")
 			except Exception as ex:
 				self.logger.error("problem sending log, known openssl issue " +str(ex))
@@ -181,21 +188,24 @@ class Otto:
 			self.ses.set_download_rate_limit(self.DOWNLOAD_LIMIT)
 
 			self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
+			self.dbx = dropbox.Dropbox(self.ACCESS_TOKEN)
+
 			print "Otto is now running, log file can be found here: "+str(self.LOGFILE)
 
 			f = open(configfile, 'rb')
 			try:
-				self.client.put_file('/available_commands', f, overwrite=True, )
+				# self.client.put_file('/available_commands', f, overwrite=True, )
+				self.dbx.files_upload(f,'/available_commands',mode=dropbox.files.WriteMode('overwrite', value=None))
 				self.logger.info("available commands sent")
 			except Exception as ex:
 				self.logger.error("problem trying to send available commands")
 				self.logger.error(ex)
 			f.close()
 			while True:
-				self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
+				# self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
 				st = datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
 				self.logger.info( str(st) + " checking dropbox...")
-				otto.getFile()
+				otto.getFile()				
 				time.sleep(self.CHECK_DELAY)
 		except Exception as e:
 			self.logger.error(traceback.format_exc())
@@ -262,7 +272,7 @@ class Otto:
 			while (not handle.has_metadata()): time.sleep(1)
 			self.logger.info( 'got metadata, starting torrent download...')
 			while (handle.status().state != lt.torrent_status.seeding):
-				self.logger.info(handle.name()+ ":  "+ str(handle.status().download_rate/1000)+ "kb/s : "+str(handle.status().upload_rate/1000)+"kb/s. " + str(handle.status().progress*100)+"%%")
+				self.logger.info(handle.name()+ ":  "+ str(handle.status().download_rate/1000)+ "kb/s : "+str(handle.status().upload_rate/1000)+"kb/s. " + str(handle.status().progress*100)+" %")
 				self.logger.info("Tracker: "+ handle.status().current_tracker + " Seeds: "+str(handle.status().num_seeds)+ " Peers: "+str(handle.status().num_peers))
 				time.sleep(10)
 			self.logger.info( "[Complete] Download complete of "+handle.name())
@@ -310,7 +320,7 @@ class Otto:
 
 	def readConfig(self,configfile):
 		"""
-		Reads configuration from commands.conf at startup
+		Reads configuration from otto.conf at startup
 		"""
 		try:
 			self.config = ConfigParser.RawConfigParser()
