@@ -40,27 +40,32 @@ class Otto:
 		"""
 		Pull file from dropbox and assess if needs to be processed
 		"""
-		folder_metadata = self.client.metadata('/')
-		if False:
-			print "File Listings:"
-			for item in folder_metadata['contents']:
-				if not item['is_dir']:
-					print item['path']
 		try:
-			f, metadata = self.client.get_file_and_metadata('/commands.txt')
-			read_rev = metadata['revision']
-		except:
-			# file might not exist
-			self.dbx.files_upload('','/commands.txt',mode=dropbox.files.WriteMode('overwrite', value=None))
-			return
-		
-		if read_rev > self.CUR_REV:
-			self.logger.info("[Processing rev "+str(read_rev)+"]")
-			self.CUR_REV = read_rev
-			self.processConf(f.read())
-			self.dbx.files_upload('','/commands.txt',mode=dropbox.files.WriteMode('overwrite', value=None))
-		else:
-			self.logger.info("... nothing to do")
+			folder_metadata = self.client.metadata('/')
+			if False:
+				print "File Listings:"
+				for item in folder_metadata['contents']:
+					if not item['is_dir']:
+						print item['path']
+			try:
+				f, metadata = self.client.get_file_and_metadata('/commands.txt')
+				read_rev = metadata['revision']
+			except:
+				# file might not exist
+				self.dbx.files_upload('','/commands.txt',mode=dropbox.files.WriteMode('overwrite', value=None))
+				return
+			
+			if read_rev > self.CUR_REV:
+				self.logger.info("[Processing dropbox rev "+str(read_rev)+"]")
+				self.CUR_REV = read_rev
+				self.dbx.files_upload('','/commands.txt',mode=dropbox.files.WriteMode('overwrite', value=None))
+				self.processConf(f.read())
+			else:
+				self.logger.info("Checked dropbox... nothing to do")
+		except Exception as e:
+			self.logger.error(traceback.format_exc())
+			sys.exit(0)
+
 
 
 	def authorise(self):
@@ -86,14 +91,14 @@ class Otto:
 		try:
 			lines = content.split('\n')
 			for line in lines:
-				self.logger.info("[Processing] " + str(line))
+				self.logger.info("[Processing: " + str(line)+"]")
 				try:
 					command,arg = line.split(' ',1)
 				except:
 					command = line
 					arg = ''
-				self.logger.info("[Command] "+command)
-				self.logger.info("[Arg] "+arg)
+				self.logger.info("[Command: "+command+"]")
+				self.logger.info("[Arg: "+arg+"]")
 				command = command.lower().strip()
 				if command == 'tor': 
 					self.processTorrent(arg)
@@ -104,6 +109,7 @@ class Otto:
 				elif command == 'log':
 					self.getLog();
 				elif command == 'exit':
+					self.logger.info("Quitting Otto as commanded...")
 					sys.exit(0)
 				elif command == 'reload':
 					self.readConfig(configfile)
@@ -117,6 +123,8 @@ class Otto:
 					except:
 						self.logger.error("Problem setting delay")
 						self.CHECK_DELAY = 180
+				else:
+					self.logger.info("Command not recognised, nothing to do")
 		except Exception as e:
 			self.logger.error(traceback.format_exc())
 
@@ -151,8 +159,8 @@ class Otto:
 			p = subprocess.Popen(self.config.get('commands',arg), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 			output, err = p.communicate()
 			
-			self.logger.info( "[Output] "+ str(output))	
-			self.logger.info( "[Err]" + str(err))
+			self.logger.info( "[Output: "+ str(output)+"]")	
+			self.logger.info( "[Err:" + str(err)+"]")
 			# self.logger.info(subprocess.check_output(args,shell=True))
 
 		except Exception as e:
@@ -203,12 +211,11 @@ class Otto:
 			f.close()
 			while True:
 				# self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
-				st = datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
-				self.logger.info( str(st) + " checking dropbox...")
-				otto.getFile()				
+				otto.getFile()		
 				time.sleep(self.CHECK_DELAY)
 		except Exception as e:
 			self.logger.error(traceback.format_exc())
+			self.logger.error('Exiting Otto due to exception...')
 
 	def firstTimeWizard(self,configfile):
 		"""
@@ -272,8 +279,12 @@ class Otto:
 			while (not handle.has_metadata()): time.sleep(1)
 			self.logger.info( 'got metadata, starting torrent download...')
 			while (handle.status().state != lt.torrent_status.seeding):
-				self.logger.info(handle.name()+ ":  "+ str(handle.status().download_rate/1000)+ "kb/s : "+str(handle.status().upload_rate/1000)+"kb/s. " + str(handle.status().progress*100)+" %")
-				self.logger.info("Tracker: "+ handle.status().current_tracker + " Seeds: "+str(handle.status().num_seeds)+ " Peers: "+str(handle.status().num_peers))
+				try:
+					percentComplete = int(handle.status().progress*100)
+				except:
+					percentComplete = handle.status().progress*100
+				self.logger.info("DL " + handle.name()+ " ["+ str(handle.status().download_rate/1000)+"kb/s : "+str(handle.status().upload_rate/1000)+"kb/s.] [" + str(percentComplete)+"%]" + " [S:"+str(handle.status().num_seeds)+ " P:"+str(handle.status().num_peers)+"]" )
+				# self.logger.info("Tracker: "+ handle.status().current_tracker )
 				time.sleep(10)
 			self.logger.info( "[Complete] Download complete of "+handle.name())
 			try:
@@ -349,7 +360,8 @@ class Otto:
 		handler.setLevel(logging.INFO)
 		errhandler = RotatingFileHandler(self.ERRFILE, maxBytes=100000,backupCount=5)
 		errhandler.setLevel(logging.ERROR)
-		formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+		# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+		formatter = logging.Formatter('%(asctime)s %(message)s')
 		handler.setFormatter(formatter)
 		errhandler.setFormatter(formatter)
 		self.logger.addHandler(handler)
