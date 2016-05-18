@@ -58,14 +58,18 @@ class Otto:
 			if read_rev > self.CUR_REV:
 				self.logger.info("[Processing dropbox rev "+str(read_rev)+"]")
 				self.CUR_REV = read_rev
-				self.dbx.files_upload('','/commands.txt',mode=dropbox.files.WriteMode('overwrite', value=None))
+				r = self.dbx.files_upload('','/commands.txt',mode=dropbox.files.WriteMode('overwrite', value=None))
+				self.logger.info("Name of file uploaded = "+str(r.name))
+				if r == None or r.name == None:
+					self.logger.info("file upload of commands was not successful for some reason, returning to loop")
+					return
 				self.processConf(f.read())
 			else:
 				self.logger.info("Checked dropbox... nothing to do")
 		except Exception as e:
 			self.logger.error(traceback.format_exc())
+			self.logger.info('exiting process due to error...')
 			sys.exit(0)
-
 
 
 	def authorise(self):
@@ -92,6 +96,9 @@ class Otto:
 			lines = content.split('\n')
 			for line in lines:
 				self.logger.info("[Processing: " + str(line)+"]")
+				if line == None or len(str(line))==0:
+					self.logger.info("Empty command, returning...")
+					return
 				try:
 					command,arg = line.split(' ',1)
 				except:
@@ -99,7 +106,7 @@ class Otto:
 					arg = ''
 				self.logger.info("[Command: "+command+"]")
 				self.logger.info("[Arg: "+arg+"]")
-				command = command.lower().strip()
+				command = command.lower().strip()				
 				if command == 'tor': 
 					self.processTorrent(arg)
 				elif command == 'com':
