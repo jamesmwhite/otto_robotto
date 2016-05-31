@@ -203,7 +203,7 @@ class Otto:
 			self.ses.set_download_rate_limit(self.DOWNLOAD_LIMIT)
 
 			self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
-			self.dbx = dropbox.Dropbox(self.ACCESS_TOKEN)
+			self.dbx = dropbox.Dropbox(self.ACCESS_TOKEN,max_retries_on_error=2,max_retries_on_rate_limit=2)
 
 			print "Otto is now running, log file can be found here: "+str(self.LOGFILE)
 
