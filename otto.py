@@ -58,6 +58,7 @@ class Otto:
 			if read_rev > self.CUR_REV:
 				self.logger.info("[Processing dropbox rev "+str(read_rev)+"]")
 				self.CUR_REV = read_rev
+				self.logger.info("set read rev to "+str(self.CUR_REV))
 				r = self.dbx.files_upload('','/commands.txt',mode=dropbox.files.WriteMode('overwrite', value=None))
 				self.logger.info("Name of file uploaded = "+str(r.name))
 				if r == None or r.name == None:
@@ -69,7 +70,7 @@ class Otto:
 		except Exception as e:
 			self.logger.error(traceback.format_exc())
 			self.logger.info('exiting process due to error...')
-			sys.exit(0)
+			self.RUNAPP = False
 
 
 	def authorise(self):
@@ -216,7 +217,7 @@ class Otto:
 				self.logger.error("problem trying to send available commands")
 				self.logger.error(ex)
 			f.close()
-			while True:
+			while self.RUNAPP:
 				# self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
 				otto.getFile()		
 				time.sleep(self.CHECK_DELAY)
@@ -380,6 +381,7 @@ otto = Otto()
 if otto.firstTimeWizard(configfile):
 	otto.readConfig(configfile)
 	otto.setupLogger()
+	otto.RUNAPP = True
 	otto.execute()
 
 
