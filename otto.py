@@ -1,7 +1,7 @@
 # Include the Dropbox SDK
 import dropbox
 import time
-import datetime
+from datetime import datetime
 import urllib
 import os,sys
 import ConfigParser
@@ -13,6 +13,7 @@ import thread
 import logging
 from logging.handlers import RotatingFileHandler
 import traceback
+from threading import Thread
 
 # Get your app key and secret from the Dropbox developer website
 
@@ -33,6 +34,7 @@ class Otto:
 	client = None
 	config = None
 	dbx = None
+	aliveTime = None
 
 
 
@@ -218,8 +220,9 @@ class Otto:
 				self.logger.error(ex)
 			f.close()
 			while self.RUNAPP:
+				self.aliveTime = datetime.now()
 				# self.client = dropbox.client.DropboxClient(self.ACCESS_TOKEN)
-				otto.getFile()		
+				otto.getFile()
 				time.sleep(self.CHECK_DELAY)
 		except Exception as e:
 			self.logger.error(traceback.format_exc())
@@ -374,7 +377,20 @@ class Otto:
 		errhandler.setFormatter(formatter)
 		self.logger.addHandler(handler)
 		self.logger.addHandler(errhandler)
-		
+
+def heartbeatCheck(otto_copy):
+	while True:
+		ottoTime = otto_copy.aliveTime
+		if not ottoTime == None:
+			difference = (ottoTime - datetime.now()).total_seconds()
+			if difference > 120:
+				try:
+					otto.logger.info("Exiting process due to timestamps out of date")
+				except:
+					print "error in timestamps"
+				sys.exit()
+		time.sleep(30)
+			
 scriptdir = os.path.dirname(os.path.realpath(__file__))
 configfile = os.path.join(scriptdir,'otto.conf')
 otto = Otto()
@@ -382,6 +398,6 @@ if otto.firstTimeWizard(configfile):
 	otto.readConfig(configfile)
 	otto.setupLogger()
 	otto.RUNAPP = True
+	t = Thread(target=heartbeatCheck, args=(otto,))
+	t.start()
 	otto.execute()
-
-
