@@ -19,7 +19,7 @@ from threading import Thread
 
 class Otto:
 	APP_KEY = ''
-	APP_SECRET = '' 
+	APP_SECRET = ''
 	ACCESS_TOKEN = ''
 	DOWNLOAD_LIMIT = 1024000
 	CHECK_DELAY = 60 #number of seconds before checking dropbox for updates
@@ -28,6 +28,7 @@ class Otto:
 	MOVIE_DIR = 'movies'
 	TV_DIR = 'tv'
 	LOGFILE = ''
+	COMPLETEDFILE = 'completed.txt'
 	LOGNAME = ''
 	ERRFILE = ''
 	ERRNAME = ''
@@ -56,7 +57,7 @@ class Otto:
 				# file might not exist
 				self.dbx.files_upload('','/commands.txt',mode=dropbox.files.WriteMode('overwrite', value=None))
 				return
-			
+
 			if read_rev > self.CUR_REV:
 				self.logger.info("[Processing dropbox rev "+str(read_rev)+"]")
 				self.CUR_REV = read_rev
@@ -109,8 +110,8 @@ class Otto:
 					arg = ''
 				self.logger.info("[Command: "+command+"]")
 				self.logger.info("[Arg: "+arg+"]")
-				command = command.lower().strip()				
-				if command == 'tor': 
+				command = command.lower().strip()
+				if command == 'tor':
 					self.processTorrent(arg)
 				elif command == 'com':
 					self.processCom(arg)
@@ -168,8 +169,8 @@ class Otto:
 				return
 			p = subprocess.Popen(self.config.get('commands',arg), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 			output, err = p.communicate()
-			
-			self.logger.info( "[Output: "+ str(output)+"]")	
+
+			self.logger.info( "[Output: "+ str(output)+"]")
 			self.logger.info( "[Err:" + str(err)+"]")
 			# self.logger.info(subprocess.check_output(args,shell=True))
 
@@ -230,10 +231,10 @@ class Otto:
 
 	def firstTimeWizard(self,configfile):
 		"""
-		This gets directory info from user and also 
+		This gets directory info from user and also
 		guides user through authorising dropbox access
 		"""
-		
+
 		if os.path.exists(configfile):
 			print 'Using config file '+str(configfile)
 			return True
@@ -275,6 +276,22 @@ class Otto:
 			config.write(theconfigfile)
 		return True
 
+	def logCompletedDownload(self,torrentCompleted):
+		try:
+			completedfile = os.path.join(scriptdir,self.COMPLETEDFILE)
+			with open(completedfile, "a") as f:
+				f.write('\n'+torrentCompleted+' completed')
+				# self.client.put_file('/log_otto.log', f, overwrite=True, )
+			f.close()
+
+			f = open(completedfile, 'rb')
+			self.dbx.files_upload(f,'/'+self.COMPLETEDFILE,mode=dropbox.files.WriteMode('overwrite', value=None))
+			f.close()
+			self.logger.info("completed file uploaded to dropbox")
+
+		except Exception as ex:
+			self.logger.error("problem sending completed file: " +str(ex))
+
 	def downloadMagnet(self,magnetlink,location=''):
 		try:
 			savepath = self.TORRENT_DIR
@@ -282,7 +299,7 @@ class Otto:
 				savepath = os.path.join(savepath, location)
 				if not os.path.exists(savepath):
 					os.makedirs(savepath)
-					self.logger.info("Created directory "+str(savepath)) 
+					self.logger.info("Created directory "+str(savepath))
 			params = { 'save_path': savepath}
 			handle = lt.add_magnet_uri(self.ses, magnetlink, params)
 
@@ -298,6 +315,7 @@ class Otto:
 				# self.logger.info("Tracker: "+ handle.status().current_tracker )
 				time.sleep(10)
 			self.logger.info( "[Complete] Download complete of "+handle.name())
+			self.logCompletedDownload(handle.name())
 			try:
 				self.logger.info("Removing torrent: "+str(handle.name()))
 				self.ses.remove_torrent(handle)
@@ -362,7 +380,7 @@ class Otto:
 		self.logger.setLevel(logging.INFO)
 		self.LOGNAME = "otto_"+self.ACCESS_TOKEN+".log"
 		self.LOGFILE = os.path.join(scriptdir,self.LOGNAME)
-		
+
 		self.ERRNAME = "error_otto_"+self.ACCESS_TOKEN+".log"
 		self.ERRFILE = os.path.join(scriptdir,self.ERRNAME)
 
@@ -378,19 +396,6 @@ class Otto:
 		self.logger.addHandler(handler)
 		self.logger.addHandler(errhandler)
 
-def heartbeatCheck(otto_copy):
-	while True:
-		ottoTime = otto_copy.aliveTime
-		if not ottoTime == None:
-			difference = (ottoTime - datetime.now()).total_seconds()
-			if difference > 120:
-				try:
-					otto.logger.info("Exiting process due to timestamps out of date")
-				except:
-					print "error in timestamps"
-				sys.exit()
-		time.sleep(30)
-			
 scriptdir = os.path.dirname(os.path.realpath(__file__))
 configfile = os.path.join(scriptdir,'otto.conf')
 otto = Otto()
@@ -398,6 +403,4 @@ if otto.firstTimeWizard(configfile):
 	otto.readConfig(configfile)
 	otto.setupLogger()
 	otto.RUNAPP = True
-	t = Thread(target=heartbeatCheck, args=(otto,))
-	t.start()
 	otto.execute()
