@@ -39,12 +39,11 @@ class Otto:
         Iterate through the pulled down config file
         """
         try:
-            content = content.trim()
-            self.logger.info("[Processing: " + str(line)+"]")
+            self.logger.info("received message: {}".format(content))
             try:
-                command, arg = line.split(' ', 1)
+                command, arg = content.split(' ', 1)
             except Exception, e:
-                command = line
+                command = content
                 arg = ''
             self.logger.info("[Command: "+command+"]")
             self.logger.info("[Arg: "+arg+"]")
@@ -87,7 +86,8 @@ class Otto:
             try:
                 # self.client.put_file('/log_otto.log', f, overwrite=True, )
                 #TODO: Send message to person
-                self.send_message(f.read())
+                log_string = f.read()
+                self.send_message(log_string[-500:])
                 self.logger.info("marking sendlog as done")
             except Exception as ex:
                 self.logger.error("problem sending log, known openssl issue " +str(ex))
@@ -116,7 +116,7 @@ class Otto:
             self.logger.error(traceback.format_exc())
 
     def send_message(self, message):
-        bot.sendMessage(self.current_responder, message)
+        self.bot.sendMessage(self.current_responder, message)
 
     def handle_message(self, msg):
         self.current_responder = msg['from']['id']
@@ -152,7 +152,7 @@ class Otto:
             self.logger.info("Setting download limit to "+str(self.DOWNLOAD_LIMIT)+ " bytes")
             self.ses.set_download_rate_limit(self.DOWNLOAD_LIMIT)
             print "Otto is now running, log file can be found here: "+str(self.LOGFILE)
-            self.bot = telepot.Bot()
+            self.bot = telepot.Bot(self.telegram_token)
             self.bot.message_loop(self.handle_message)
             while self.RUNAPP:
                 self.aliveTime = datetime.now()
@@ -279,10 +279,10 @@ class Otto:
         """
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-        self.LOGNAME = "otto_"+self.ACCESS_TOKEN+".log"
+        self.LOGNAME = "logotto.log"
         self.LOGFILE = os.path.join(scriptdir,self.LOGNAME)
 
-        self.ERRNAME = "error_otto_"+self.ACCESS_TOKEN+".log"
+        self.ERRNAME = "error_otto.log"
         self.ERRFILE = os.path.join(scriptdir,self.ERRNAME)
 
         # handler = logging.FileHandler(self.LOGFILE)
