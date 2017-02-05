@@ -269,7 +269,7 @@ class Otto:
             self.TORRENT_DIR = self.config.get('dirs','torrentdir')
             self.CHECK_DELAY = self.config.getint('misc','checkfrequency')
             self.DOWNLOAD_LIMIT = self.config.getint('misc','downloadlimit')
-            self.telegram_token = self.config.getint('misc','telegram_token')
+            self.telegram_token = self.config.get('misc','telegram_token')
         except Exception as e:
             print e
 
