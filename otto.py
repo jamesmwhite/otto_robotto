@@ -13,6 +13,7 @@ from logging.handlers import RotatingFileHandler
 import traceback
 from threading import Thread
 import telepot
+import feedparser
 
 class Otto:
     DOWNLOAD_LIMIT = 1024000
@@ -26,6 +27,29 @@ class Otto:
     telegram_token = None
     bot = None
     current_responder = None
+    feed_url = None
+
+    def list_new_shows(self):
+        """
+        use showrss.info for this option
+        """
+        d = feedparser.parse(self.feed_url)
+        total_string = ""
+        for entry in d.entries:
+            total_string = '{}\n{}'.format(total_string, entry['summary_detail']['value'])
+            # total_string = '{}\n{}'.format(total_string, entry['links'][0]['href'])
+        self.send_message(total_string[-3000:])
+
+    def get_show_link(self, showname):
+        """
+        use showrss.info for this option
+        """
+        d = feedparser.parse(self.feed_url)
+        for entry in d.entries:
+            if entry['summary_detail']['value'] == showname:
+                self.send_message(entry['links'][0]['href'])
+                return
+            
 
     def process_conf(self,content):
         """
@@ -43,6 +67,10 @@ class Otto:
             command = command.lower().strip()
             if command == 'tor':
                 self.processTorrent(arg)
+            elif command == 'shows':
+                self.list_new_shows()
+            elif command == 'show':
+                self.get_show_link(arg)
             elif command == 'help':
                 self.send_config()
             elif command == 'com':
@@ -125,10 +153,11 @@ class Otto:
 
     def handle_message(self, msg):
         self.current_responder = msg['from']['id']
-        if msg['text'] == 'hello otto':
+        message = msg['text']
+        if message.lower() == 'hello otto':
             self.send_message("Hello to you too!")
         else:
-            self.process_conf(msg['text'])
+            self.process_conf(message)
 
     def processTorrent(self,torrent_url):
         """
@@ -273,6 +302,8 @@ class Otto:
             self.CHECK_DELAY = self.config.getint('misc','checkfrequency')
             self.DOWNLOAD_LIMIT = self.config.getint('misc','downloadlimit')
             self.telegram_token = self.config.get('misc','telegram_token')
+            self.TORRENT_DIR = self.config.get('dirs','torrentdir')
+            self.feed_url = self.config.get('misc', 'feedurl')
         except Exception as e:
             print e
 
