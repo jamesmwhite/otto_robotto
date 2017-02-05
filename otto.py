@@ -16,20 +16,13 @@ import telepot
 
 class Otto:
     DOWNLOAD_LIMIT = 1024000
-    CHECK_DELAY = 10 
-    CUR_REV = 0
+    CHECK_DELAY = 10
     TORRENT_DIR = ''
-    MOVIE_DIR = 'movies'
-    TV_DIR = 'tv'
     LOGFILE = ''
-    COMPLETEDFILE = 'completed.txt'
     LOGNAME = ''
     ERRFILE = ''
     ERRNAME = ''
-    client = None
     config = None
-    dbx = None
-    aliveTime = None
     telegram_token = None
     bot = None
     current_responder = None
@@ -67,12 +60,6 @@ class Otto:
                 thread.start_new_thread(self.downloadMagnet, (arg, 'tv',))
             elif command == 'm':
                 thread.start_new_thread(self.downloadMagnet, (arg, 'movies',))
-            elif command == 'setdelay':
-                try:
-                    self.CHECK_DELAY = int(arg)
-                except:
-                    self.logger.error("Problem setting delay")
-                    self.CHECK_DELAY = 10
             else:
                 self.logger.info("Command not recognised, nothing to do")
         except Exception as e:
@@ -173,7 +160,6 @@ class Otto:
             self.bot = telepot.Bot(self.telegram_token)
             self.bot.message_loop(self.handle_message)
             while self.RUNAPP:
-                self.aliveTime = datetime.now()
                 time.sleep(self.CHECK_DELAY)
         except Exception as e:
             self.logger.error(traceback.format_exc())
@@ -284,7 +270,6 @@ class Otto:
         try:
             self.config = ConfigParser.RawConfigParser()
             self.config.read(configfile)
-            self.TORRENT_DIR = self.config.get('dirs','torrentdir')
             self.CHECK_DELAY = self.config.getint('misc','checkfrequency')
             self.DOWNLOAD_LIMIT = self.config.getint('misc','downloadlimit')
             self.telegram_token = self.config.get('misc','telegram_token')
@@ -303,12 +288,10 @@ class Otto:
         self.ERRNAME = "error_otto.log"
         self.ERRFILE = os.path.join(scriptdir,self.ERRNAME)
 
-        # handler = logging.FileHandler(self.LOGFILE)
         handler = RotatingFileHandler(self.LOGFILE, maxBytes=100000,backupCount=5)
         handler.setLevel(logging.INFO)
         errhandler = RotatingFileHandler(self.ERRFILE, maxBytes=100000,backupCount=5)
         errhandler.setLevel(logging.ERROR)
-        # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         formatter = logging.Formatter('%(asctime)s %(message)s')
         handler.setFormatter(formatter)
         errhandler.setFormatter(formatter)
