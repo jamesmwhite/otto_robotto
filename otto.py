@@ -50,6 +50,8 @@ class Otto:
             command = command.lower().strip()
             if command == 'tor':
                 self.processTorrent(arg)
+            elif command == 'help':
+                self.send_config()
             elif command == 'com':
                 self.processCom(arg)
             elif command == 'mag':
@@ -84,10 +86,8 @@ class Otto:
         try:
             f = open(self.LOGFILE, 'rb')
             try:
-                # self.client.put_file('/log_otto.log', f, overwrite=True, )
-                #TODO: Send message to person
                 log_string = f.read()
-                self.send_message(log_string[-500:])
+                self.send_message(log_string[-3000:])
                 self.logger.info("marking sendlog as done")
             except Exception as ex:
                 self.logger.error("problem sending log, known openssl issue " +str(ex))
@@ -95,6 +95,24 @@ class Otto:
         except Exception as e:
             self.logger.error(e)
             self.logger.error(traceback.format_exc())
+
+
+    def send_config(self):
+        """
+        Pushes config file to user
+        """
+        try:
+            f = open(configfile, 'rb')
+            try:
+                content = f.read()
+                self.send_message(content)
+                self.logger.info("sent config")
+            except Exception as ex:
+                self.logger.error("problem sending config, known openssl issue " +str(ex))
+            f.close()
+        except Exception as e:
+            self.logger.error(e)
+            self.logger.error(traceback.format_exc())        
 
     def processCom(self,arg):
         """
