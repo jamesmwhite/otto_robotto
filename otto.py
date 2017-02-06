@@ -36,9 +36,7 @@ class Otto:
         d = feedparser.parse(self.feed_url)
         total_string = ""
         for entry in d.entries:
-            total_string = '{}\n{}'.format(total_string, entry['summary_detail']['value'])
-            # total_string = '{}\n{}'.format(total_string, entry['links'][0]['href'])
-        self.send_message(total_string[-3000:])
+            self.send_message(entry['summary_detail']['value'])
 
     def get_show_link(self, showname):
         """
