@@ -28,6 +28,8 @@ class Otto:
     bot = None
     current_responder = None
     feed_url = None
+    download_names = {}
+    download_links = {}
 
     def list_new_shows(self):
         """
@@ -35,18 +37,22 @@ class Otto:
         """
         d = feedparser.parse(self.feed_url)
         total_string = ""
+        self.download_names = {}
+        self.download_links = {}
+        count = 0
         for entry in d.entries:
-            self.send_message(entry['summary_detail']['value'])
+            count = count + 1
+            self.download_names[str(count)] = entry['summary_detail']['value']
+            self.download_links[str(count)] = entry['links'][0]['href']
+            self.send_message('{}. {}'.format(count, entry['summary_detail']['value']))
 
     def get_show_link(self, showname):
         """
         use showrss.info for this option
         """
-        d = feedparser.parse(self.feed_url)
-        for entry in d.entries:
-            if entry['summary_detail']['value'] == showname:
-                self.send_message(entry['links'][0]['href'])
-                return
+        thread.start_new_thread(self.downloadMagnet, (self.download_links[showname], 'tv',))
+        self.send_message('{} download queued.'.format(self.download_names[showname]))
+        return
             
 
     def process_conf(self,content):
@@ -84,8 +90,10 @@ class Otto:
                 self.readConfig(configfile)
             elif command == 't':
                 thread.start_new_thread(self.downloadMagnet, (arg, 'tv',))
+                self.send_message("Magnet download is now queued as TV.")
             elif command == 'm':
                 thread.start_new_thread(self.downloadMagnet, (arg, 'movies',))
+                self.send_message("Magnet download is now queued as Movie.")
             else:
                 self.logger.info("Command not recognised, nothing to do")
         except Exception as e:
@@ -142,6 +150,7 @@ class Otto:
             self.logger.info( "[Output: "+ str(output)+"]")
             self.logger.info( "[Err:" + str(err)+"]")
             # self.logger.info(subprocess.check_output(args,shell=True))
+            self.send_message("Command finished: output [{}] - error [{}]".format(output, err))
 
         except Exception as e:
             self.logger.error(traceback.format_exc())
