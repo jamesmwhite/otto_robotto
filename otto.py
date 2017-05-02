@@ -42,7 +42,6 @@ class Otto:
         count = 0
         messages = []
         for entry in d.entries:
-            self.logger.info(entry)
             count = count + 1
             self.download_names[str(count)] = entry['summary_detail']['value']
             self.download_links[str(count)] = entry['links'][0]['href']
