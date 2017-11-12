@@ -14,6 +14,7 @@ import traceback
 from threading import Thread
 import telepot
 import feedparser
+import freesat
 
 class Otto:
     DOWNLOAD_LIMIT = 1024000
@@ -45,8 +46,6 @@ class Otto:
             count = count + 1
             self.download_names[str(count)] = entry['summary_detail']['value']
             self.download_links[str(count)] = entry['links'][0]['href']
-            # would be nice to include date in this message too
-            # self.send_message('{}. {}'.format(count, entry['summary_detail']['value']))
             message = '{}. {} {}'.format(count, entry['summary_detail']['value'], entry['published'])
             messages.insert(0, message)
         for m in messages:
@@ -91,9 +90,13 @@ class Otto:
                 thread.start_new_thread(self.downloadMagnet, (arg, ))
             elif command == 'log':
                 self.getLog()
+            elif command == 'tv':
+                for listing in freesat.get_tv_listings():
+                    self.send_message(listing)
             elif command == 'exit':
                 self.logger.info("Quitting Otto as commanded...")
-                sys.exit(0)
+                self.send_message("Quitting Otto as commanded...")
+                self.RUNAPP = False
             elif command == 'reload':
                 self.readConfig(configfile)
             elif command == 't':
@@ -103,7 +106,8 @@ class Otto:
                 thread.start_new_thread(self.downloadMagnet, (arg, 'movies',))
                 self.send_message("Magnet download is now queued as Movie.")
             else:
-                self.logger.info("Command not recognised, nothing to do")
+                self.logger.info("Command {} not recognised, trying other command dictionary...")
+                self.processCom(command)
         except Exception as e:
             self.logger.error(traceback.format_exc())
 
@@ -152,19 +156,28 @@ class Otto:
         try:
             if not self.config.has_option('commands',arg):
                 self.logger.info("[INVALID OPTION] Command '"+str(arg)+"'' was attempted to be run")
+                self.send_message("INVALID command [{}]".format(arg))
                 return
             p = subprocess.Popen(self.config.get('commands',arg), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             output, err = p.communicate()
             self.logger.info( "[Output: "+ str(output)+"]")
             self.logger.info( "[Err:" + str(err)+"]")
             # self.logger.info(subprocess.check_output(args,shell=True))
-            self.send_message("Command finished: output [{}] - error [{}]".format(output, err))
+            if output is not None and len(output) > 0:
+                self.send_message("Command finished: Output [{}]".format(output))
+            if err is not None and len(err) > 0:
+                self.send_message("Command finished: Error [{}]".format(err))
 
         except Exception as e:
             self.logger.error(traceback.format_exc())
 
     def send_message(self, message):
-        self.bot.sendMessage(self.current_responder, message)
+        if len(message) > 4000:
+                message = message[-4000:]
+        try:
+            self.bot.sendMessage(self.current_responder, message)
+        except Exception, e:
+            print e
 
     def handle_message(self, msg):
         self.current_responder = msg['from']['id']
