@@ -3,7 +3,6 @@ from datetime import datetime
 import requests
 import json
 
-
 def get_tv_listings():
     channels = {
         '700':'bbc2hd',
@@ -20,9 +19,12 @@ def get_tv_listings():
             chanstring = '?channel={}'.format(chan)
         else:
             chanstring = '{}&channel={}'.format(chanstring, chan)
-    print chanstring
+    # print chanstring
     r = requests.get('https://www.freesat.co.uk/whats/tv-guide/api/0/{}'.format(chanstring))
-    j = json.loads(r.content)
+    content = r.content
+    print 'woooooo'
+    print content
+    j = json.loads(content.encode('utf-8'))
     now = datetime.now()
     listings = []
     for channel in j:
@@ -39,7 +41,9 @@ def get_tv_listings():
             endtime = datetime.fromtimestamp(int(event['startTime']) + (int(duration)))
 
             if endtime > now:
-                print '{} {}'.format(name, start)
-                chanlistings = '{}\n{} {}'.format(chanlistings, start, name)
+                print '{} {}'.format(name.encode('utf-8'), start)
+                chanlistings = '{}\n{} {}'.format(chanlistings, start, name.encode('utf-8'))
         listings.append(chanlistings)
     return listings
+
+print get_tv_listings()
