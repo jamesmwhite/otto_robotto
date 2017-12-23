@@ -217,7 +217,7 @@ class Otto:
             self.bot = telepot.Bot(self.telegram_token)
             self.bot.message_loop(self.handle_message)
             while self.RUNAPP:
-                time.sleep(self.CHECK_DELAY)
+                time.sleep(2)
         except Exception as e:
             self.logger.error(traceback.format_exc())
             self.logger.error('Exiting Otto due to exception...')

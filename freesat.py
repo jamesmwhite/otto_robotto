@@ -5,8 +5,8 @@ import json
 
 def get_tv_listings():
     channels = {
-        '700':'bbc2hd',
-        '555':'bbc1hd',
+        '600':'bbc2hd',
+        '505':'bbc1hd',
         '10005':'itvhd',
         '1540':'channel4hd',
         '1547':'channel5',
@@ -22,8 +22,8 @@ def get_tv_listings():
     # print chanstring
     r = requests.get('https://www.freesat.co.uk/whats/tv-guide/api/0/{}'.format(chanstring))
     content = r.content
-    print 'woooooo'
-    print content
+    # print 'woooooo'
+    # print content
     j = json.loads(content.encode('utf-8'))
     now = datetime.now()
     listings = []
@@ -41,9 +41,10 @@ def get_tv_listings():
             endtime = datetime.fromtimestamp(int(event['startTime']) + (int(duration)))
 
             if endtime > now:
-                print '{} {}'.format(name.encode('utf-8'), start)
+                # print '{} {}'.format(name.encode('utf-8'), start)
                 chanlistings = '{}\n{} {}'.format(chanlistings, start, name.encode('utf-8'))
         listings.append(chanlistings)
     return listings
 
-print get_tv_listings()
+for l in get_tv_listings():
+    print l
