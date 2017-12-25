@@ -49,7 +49,9 @@ def get_tv_listings():
 
     # return listings
     return_list = []
-    for item in listings_dict:
+    channel_keys = listings_dict.keys()
+    channel_keys.sort()
+    for item in channel_keys:
         new_str = '-- {} --'.format(item)
         arr = listings_dict[item]
         last_str = ''
