@@ -53,13 +53,16 @@ def get_tv_listings():
     channel_keys.sort()
     for item in channel_keys:
         new_str = '-- {} --'.format(item)
-        arr = listings_dict[item]
+        single_chan_dict = listings_dict[item]
         last_str = ''
-        for aitem in arr:
-            if aitem == last_str:
-                continue
-            new_str = '{}\n{}'.format(new_str, aitem)
-            last_str = aitem
+        time_listings = single_chan_dict.keys()
+        time_listings.sort()
+        for aitem in time_listings:
+            # if aitem == last_str:
+            #     continue
+            next_item = single_chan_dict[aitem]
+            new_str = '{}\n{}'.format(new_str, next_item)
+            # last_str = next_item
         return_list.append(new_str)
         
     return return_list
@@ -69,9 +72,9 @@ def parse_channels(channel, now):
     chanid = channel['channelid']
     channame = channels[str(chanid)]
     if channame in listings_dict:
-        listing_arr = listings_dict[channame]
+        single_chan_dict = listings_dict[channame]
     else:
-        listing_arr = []
+        single_chan_dict = {}
     for event in channel['event']:
         name = event['name']
         start = time.strftime("%H:%M", time.localtime(event['startTime']))
@@ -84,8 +87,8 @@ def parse_channels(channel, now):
                 encoded_name = name.encode('utf-8', errors='')
                 start = start.encode('utf-8')
                 chanlistings = '{}\n{} {}'.format(chanlistings, start, encoded_name)
-                listing_arr.append('{} {}'.format(start, encoded_name))
-    listings_dict[channame] = listing_arr
+                single_chan_dict[start] = '{} {}'.format(start, encoded_name)
+    listings_dict[channame] = single_chan_dict
     return chanlistings
 
 for l in get_tv_listings():
